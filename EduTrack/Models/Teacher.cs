@@ -16,6 +16,8 @@ namespace EduTrack.Models
 
         public string Email { get; set; }
 
+        public string Password { get; set; }
+
 
         public List<Subject> Subjects { get; set; } = new List<Subject>();
 
