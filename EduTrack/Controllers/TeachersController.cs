@@ -228,7 +228,8 @@ namespace EduTrack.Controllers
                     Value = s.Id.ToString(),
                     Text = s.Name,
                     Selected = assignedSubjects.Contains(s.Id)
-                }).ToList()
+                }).ToList(),
+                SelectedSubjectIds = assignedSubjects // Populează SelectedSubjectIds
             };
 
             return View(viewModel);
@@ -247,8 +248,9 @@ namespace EduTrack.Controllers
                 return NotFound();
             }
 
-            var selectedSubjectIds = model.SubjectIds;
-            var selectedSubjects = await _context.Subject.Where(s => selectedSubjectIds.Contains(s.Id)).ToListAsync();
+            var selectedSubjects = await _context.Subject
+                .Where(s => model.SelectedSubjectIds.Contains(s.Id))
+                .ToListAsync();
 
             teacher.Subjects.Clear();
             teacher.Subjects.AddRange(selectedSubjects);
@@ -256,6 +258,7 @@ namespace EduTrack.Controllers
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
+
 
         // GET: Teachers/Delete/5
         public async Task<IActionResult> Delete(int? id)

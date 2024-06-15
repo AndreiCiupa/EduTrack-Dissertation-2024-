@@ -2,10 +2,10 @@
 
 namespace EduTrack.Models
 {
-    public class AssignSubjectsViewModel
+    public class EnrollStudentsViewModel
     {
-        public int TeacherId { get; set; }
-        public string TeacherName { get; set; }
+        public int StudentId { get; set; }
+        public string StudentName { get; set; }
         public List<SelectListItem> Subjects { get; set; } = new List<SelectListItem>();
         public List<int> SelectedSubjectIds { get; set; } = new List<int>();
     }

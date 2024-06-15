@@ -188,6 +188,76 @@ namespace EduTrack.Controllers
             return View(student);
         }
 
+        // GET: Students/EnrollStudents/5
+        public async Task<IActionResult> EnrollStudents(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var student = await _context.Student
+                .Include(s => s.Subjects)
+                .FirstOrDefaultAsync(m => m.Id == id);
+            if (student == null)
+            {
+                return NotFound();
+            }
+
+            var allSubjects = await _context.Subject.ToListAsync();
+            var assignedSubjects = student.Subjects.Select(s => s.Id).ToList();
+
+            var viewModel = new EnrollStudentsViewModel
+            {
+                StudentId = student.Id,
+                StudentName = $"{student.FirstName} {student.LastName}",
+                Subjects = allSubjects.Select(s => new SelectListItem
+                {
+                    Value = s.Id.ToString(),
+                    Text = s.Name,
+                    Selected = assignedSubjects.Contains(s.Id)
+                }).ToList(),
+                SelectedSubjectIds = assignedSubjects
+            };
+
+            return View(viewModel);
+        }
+
+
+        // POST: Students/EnrollStudents/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EnrollStudents(int id, EnrollStudentsViewModel model)
+        {
+            var student = await _context.Student
+                .Include(s => s.Subjects)
+                .FirstOrDefaultAsync(m => m.Id == id);
+            if (student == null)
+            {
+                return NotFound();
+            }
+
+            var selectedSubjects = await _context.Subject
+                .Where(s => model.SelectedSubjectIds.Contains(s.Id))
+                .ToListAsync();
+
+            student.Subjects.Clear();
+            student.Subjects.AddRange(selectedSubjects);
+
+            // Asigură-te că fiecare materie are asociat un profesor
+            foreach (var subject in selectedSubjects)
+            {
+                var teacher = subject.Teachers.FirstOrDefault();
+                if (teacher != null && !student.Teachers.Contains(teacher))
+                {
+                    student.Teachers.Add(teacher);
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
+        }
+
         // GET: Students/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
