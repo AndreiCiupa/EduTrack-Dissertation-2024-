@@ -7,16 +7,19 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using EduTrack.Data;
 using EduTrack.Models;
+using Microsoft.AspNetCore.Identity;
 
 namespace EduTrack.Controllers
 {
     public class MarksController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<IdentityUser> _userManager;
 
-        public MarksController(ApplicationDbContext context)
+        public MarksController(ApplicationDbContext context, UserManager<IdentityUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         // GET: Marks
@@ -50,28 +53,34 @@ namespace EduTrack.Controllers
         // GET: Marks/Create
         public IActionResult Create()
         {
-            ViewData["StudentId"] = new SelectList(_context.Student, "Id", "Id");
-            ViewData["SubjectId"] = new SelectList(_context.Subject, "Id", "Id");
-            ViewData["TeacherId"] = new SelectList(_context.Teacher, "Id", "Id");
+            ViewData["StudentId"] = new SelectList(_context.Student, "Id", "Email");  // Display email for clarity
+            ViewData["SubjectId"] = new SelectList(_context.Subject, "Id", "Name");  // Display name for clarity
             return View();
         }
 
         // POST: Marks/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Value,DateTime,StudentId,SubjectId,TeacherId")] Mark mark)
+        public async Task<IActionResult> Create([Bind("Id,Value,StudentId,SubjectId")] Mark mark)
         {
+            var user = await _userManager.GetUserAsync(User);
+            var teacher = await _context.Teacher.FirstOrDefaultAsync(t => t.Email == user.Email);
+
+            if (teacher == null)
+            {
+                return Forbid();  // or handle accordingly if the teacher is not found
+            }
+
             if (ModelState.IsValid)
             {
+                mark.TeacherId = teacher.Id;
+                mark.DateTime = DateTime.Now;
                 _context.Add(mark);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["StudentId"] = new SelectList(_context.Student, "Id", "Id", mark.StudentId);
-            ViewData["SubjectId"] = new SelectList(_context.Subject, "Id", "Id", mark.SubjectId);
-            ViewData["TeacherId"] = new SelectList(_context.Teacher, "Id", "Id", mark.TeacherId);
+            ViewData["StudentId"] = new SelectList(_context.Student, "Id", "Email", mark.StudentId);
+            ViewData["SubjectId"] = new SelectList(_context.Subject, "Id", "Name", mark.SubjectId);
             return View(mark);
         }
 
@@ -88,20 +97,23 @@ namespace EduTrack.Controllers
             {
                 return NotFound();
             }
-            ViewData["StudentId"] = new SelectList(_context.Student, "Id", "Id", mark.StudentId);
-            ViewData["SubjectId"] = new SelectList(_context.Subject, "Id", "Id", mark.SubjectId);
-            ViewData["TeacherId"] = new SelectList(_context.Teacher, "Id", "Id", mark.TeacherId);
+            ViewData["StudentId"] = new SelectList(_context.Student, "Id", "Email", mark.StudentId);
+            ViewData["SubjectId"] = new SelectList(_context.Subject, "Id", "Name", mark.SubjectId);
             return View(mark);
         }
 
         // POST: Marks/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Value,DateTime,StudentId,SubjectId,TeacherId")] Mark mark)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Value,StudentId,SubjectId")] Mark mark)
         {
             if (id != mark.Id)
+            {
+                return NotFound();
+            }
+
+            var existingMark = await _context.Mark.FindAsync(id);
+            if (existingMark == null)
             {
                 return NotFound();
             }
@@ -110,7 +122,10 @@ namespace EduTrack.Controllers
             {
                 try
                 {
-                    _context.Update(mark);
+                    existingMark.Value = mark.Value;
+                    existingMark.StudentId = mark.StudentId;
+                    existingMark.SubjectId = mark.SubjectId;
+                    _context.Update(existingMark);
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
@@ -126,9 +141,8 @@ namespace EduTrack.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["StudentId"] = new SelectList(_context.Student, "Id", "Id", mark.StudentId);
-            ViewData["SubjectId"] = new SelectList(_context.Subject, "Id", "Id", mark.SubjectId);
-            ViewData["TeacherId"] = new SelectList(_context.Teacher, "Id", "Id", mark.TeacherId);
+            ViewData["StudentId"] = new SelectList(_context.Student, "Id", "Email", mark.StudentId);
+            ViewData["SubjectId"] = new SelectList(_context.Subject, "Id", "Name", mark.SubjectId);
             return View(mark);
         }
 
