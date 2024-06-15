@@ -34,12 +34,24 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
+
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/Identity/Account/Register"))
+    {
+        context.Response.Redirect("/Identity/Account/Login");
+        return;
+    }
+    await next();
+});
 
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 app.MapRazorPages();
+
 
 using (var scope = app.Services.CreateScope())
 {
