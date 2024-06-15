@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using EduTrack.Data;
 using EduTrack.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EduTrack.Controllers
 {
@@ -25,11 +26,55 @@ namespace EduTrack.Controllers
         // GET: Marks
         public async Task<IActionResult> Index()
         {
-            var applicationDbContext = _context.Mark.Include(m => m.Student).Include(m => m.Subject).Include(m => m.Teacher);
-            return View(await applicationDbContext.ToListAsync());
+            var user = await _userManager.GetUserAsync(User);
+
+            if (User.IsInRole("Admin"))
+            {
+                var marks = await _context.Mark
+                    .Include(m => m.Student)
+                    .Include(m => m.Subject)
+                    .Include(m => m.Teacher)
+                    .ToListAsync();
+                return View(marks);
+            }
+            else if (User.IsInRole("Teacher"))
+            {
+                var teacher = await _context.Teacher.FirstOrDefaultAsync(t => t.Email == user.Email);
+                if (teacher == null)
+                {
+                    return Forbid(); // or handle accordingly if teacher not found
+                }
+
+                var marks = await _context.Mark
+                    .Where(m => m.TeacherId == teacher.Id)
+                    .Include(m => m.Student)
+                    .Include(m => m.Subject)
+                    .Include(m => m.Teacher)
+                    .ToListAsync();
+                return View(marks);
+            }
+            else if (User.IsInRole("Student"))
+            {
+                var student = await _context.Student.FirstOrDefaultAsync(s => s.Email == user.Email);
+                if (student == null)
+                {
+                    return Forbid(); // or handle accordingly if teacher not found
+                }
+
+                var marks = await _context.Mark
+                    .Where(m => m.StudentId == student.Id)
+                    .Include(m => m.Student)
+                    .Include(m => m.Subject)
+                    .Include(m => m.Teacher)
+                    .ToListAsync();
+                return View(marks);
+            }
+
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Marks/Details/5
+        [Authorize(Roles = "Admin,Teacher,Student")]
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -47,10 +92,29 @@ namespace EduTrack.Controllers
                 return NotFound();
             }
 
+            var user = await _userManager.GetUserAsync(User);
+            if (User.IsInRole("Teacher"))
+            {
+                var teacher = await _context.Teacher.FirstOrDefaultAsync(t => t.Email == user.Email);
+                if (teacher == null || mark.TeacherId != teacher.Id)
+                {
+                    return Forbid();
+                }
+            }
+            else if (User.IsInRole("Student"))
+            {
+                var student = await _context.Student.FirstOrDefaultAsync(s => s.Email == user.Email);
+                if (student == null || mark.StudentId != student.Id)
+                {
+                    return Forbid();
+                }
+            }
+
             return View(mark);
         }
 
         // GET: Marks/Create
+        [Authorize(Roles = "Teacher")]
         public IActionResult Create()
         {
             ViewData["StudentId"] = new SelectList(_context.Student, "Id", "Email");  // Display email for clarity
@@ -60,6 +124,7 @@ namespace EduTrack.Controllers
 
         // POST: Marks/Create
         [HttpPost]
+        [Authorize(Roles = "Teacher")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,Value,StudentId,SubjectId")] Mark mark)
         {
@@ -85,6 +150,7 @@ namespace EduTrack.Controllers
         }
 
         // GET: Marks/Edit/5
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -97,6 +163,14 @@ namespace EduTrack.Controllers
             {
                 return NotFound();
             }
+
+            var user = await _userManager.GetUserAsync(User);
+            var teacher = await _context.Teacher.FirstOrDefaultAsync(t => t.Email == user.Email);
+            if (teacher == null || mark.TeacherId != teacher.Id)
+            {
+                return Forbid();
+            }
+
             ViewData["StudentId"] = new SelectList(_context.Student, "Id", "Email", mark.StudentId);
             ViewData["SubjectId"] = new SelectList(_context.Subject, "Id", "Name", mark.SubjectId);
             return View(mark);
@@ -104,6 +178,7 @@ namespace EduTrack.Controllers
 
         // POST: Marks/Edit/5
         [HttpPost]
+        [Authorize(Roles = "Teacher")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Value,StudentId,SubjectId")] Mark mark)
         {
@@ -116,6 +191,13 @@ namespace EduTrack.Controllers
             if (existingMark == null)
             {
                 return NotFound();
+            }
+
+            var user = await _userManager.GetUserAsync(User);
+            var teacher = await _context.Teacher.FirstOrDefaultAsync(t => t.Email == user.Email);
+            if (teacher == null || existingMark.TeacherId != teacher.Id)
+            {
+                return Forbid();
             }
 
             if (ModelState.IsValid)
@@ -147,6 +229,7 @@ namespace EduTrack.Controllers
         }
 
         // GET: Marks/Delete/5
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -164,21 +247,36 @@ namespace EduTrack.Controllers
                 return NotFound();
             }
 
+            var user = await _userManager.GetUserAsync(User);
+            var teacher = await _context.Teacher.FirstOrDefaultAsync(t => t.Email == user.Email);
+            if (teacher == null || mark.TeacherId != teacher.Id)
+            {
+                return Forbid();
+            }
+
             return View(mark);
         }
 
         // POST: Marks/Delete/5
         [HttpPost, ActionName("Delete")]
+        [Authorize(Roles = "Teacher")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var mark = await _context.Mark.FindAsync(id);
             if (mark != null)
             {
+                var user = await _userManager.GetUserAsync(User);
+                var teacher = await _context.Teacher.FirstOrDefaultAsync(t => t.Email == user.Email);
+                if (teacher == null || mark.TeacherId != teacher.Id)
+                {
+                    return Forbid();
+                }
+
                 _context.Mark.Remove(mark);
+                await _context.SaveChangesAsync();
             }
 
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
