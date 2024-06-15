@@ -7,9 +7,11 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using EduTrack.Data;
 using EduTrack.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EduTrack.Controllers
 {
+    [Authorize(Policy = "Admin")]
     public class SubjectsController : Controller
     {
         private readonly ApplicationDbContext _context;
