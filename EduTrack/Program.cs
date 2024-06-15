@@ -48,6 +48,12 @@ app.Use(async (context, next) =>
 });
 
 app.MapControllerRoute(
+    name: "teacher",
+    pattern: "Teacher/{action=Index}/{id?}",
+    defaults: new { controller = "Teacher" }
+);
+
+app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 app.MapRazorPages();

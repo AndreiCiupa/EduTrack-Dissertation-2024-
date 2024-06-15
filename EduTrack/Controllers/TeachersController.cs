@@ -200,6 +200,63 @@ namespace EduTrack.Controllers
             return View(teacher);
         }
 
+        // GET: Teachers/AssignSubjects/5
+        public async Task<IActionResult> AssignSubjects(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var teacher = await _context.Teacher
+                .Include(t => t.Subjects)
+                .FirstOrDefaultAsync(m => m.Id == id);
+            if (teacher == null)
+            {
+                return NotFound();
+            }
+
+            var allSubjects = await _context.Subject.ToListAsync();
+            var assignedSubjects = teacher.Subjects.Select(s => s.Id).ToList();
+
+            var viewModel = new AssignSubjectsViewModel
+            {
+                TeacherId = teacher.Id,
+                TeacherName = $"{teacher.FirstName} {teacher.LastName}",
+                Subjects = allSubjects.Select(s => new SelectListItem
+                {
+                    Value = s.Id.ToString(),
+                    Text = s.Name,
+                    Selected = assignedSubjects.Contains(s.Id)
+                }).ToList()
+            };
+
+            return View(viewModel);
+        }
+
+        // POST: Teachers/AssignSubjects/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AssignSubjects(int id, AssignSubjectsViewModel model)
+        {
+            var teacher = await _context.Teacher
+                .Include(t => t.Subjects)
+                .FirstOrDefaultAsync(m => m.Id == id);
+            if (teacher == null)
+            {
+                return NotFound();
+            }
+
+            var selectedSubjectIds = model.SubjectIds;
+            var selectedSubjects = await _context.Subject.Where(s => selectedSubjectIds.Contains(s.Id)).ToListAsync();
+
+            teacher.Subjects.Clear();
+            teacher.Subjects.AddRange(selectedSubjects);
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
+        }
+
         // GET: Teachers/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
