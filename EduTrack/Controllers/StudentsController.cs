@@ -82,7 +82,7 @@ namespace EduTrack.Controllers
         }
 
         // GET: Students/Create
-        [Authorize(Policy = "RequireAdminRole")]
+        [Authorize(Policy = "Admin")]
         public IActionResult Create()
         {
             return View();
@@ -91,7 +91,7 @@ namespace EduTrack.Controllers
         // POST: Students/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Policy = "RequireAdminRole")]
+        [Authorize(Policy = "Admin")]
         public async Task<IActionResult> Create([Bind("Id,FirstName,LastName,Age,Address,Email,Password")] Student student)
         {
             if (ModelState.IsValid)
@@ -117,7 +117,7 @@ namespace EduTrack.Controllers
         }
 
         // GET: Students/Edit/5
-        [Authorize(Policy = "RequireAdminRole")]
+        [Authorize(Policy = "Admin")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -136,7 +136,7 @@ namespace EduTrack.Controllers
         // POST: Students/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Policy = "RequireAdminRole")]
+        [Authorize(Policy = "Admin")]
         public async Task<IActionResult> Edit(int id, [Bind("Id,FirstName,LastName,Age,Address,Email,Password")] Student student)
         {
             if (id != student.Id)
@@ -212,8 +212,80 @@ namespace EduTrack.Controllers
             return View(student);
         }
 
+        // GET: Students/EnrollStudents/5
+        [Authorize(Policy = "Admin")]
+        public async Task<IActionResult> EnrollStudents(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var student = await _context.Student
+                .Include(s => s.Subjects)
+                .FirstOrDefaultAsync(m => m.Id == id);
+            if (student == null)
+            {
+                return NotFound();
+            }
+
+            var allSubjects = await _context.Subject.ToListAsync();
+            var assignedSubjects = student.Subjects.Select(s => s.Id).ToList();
+
+            var viewModel = new EnrollStudentsViewModel
+            {
+                StudentId = student.Id,
+                StudentName = $"{student.FirstName} {student.LastName}",
+                Subjects = allSubjects.Select(s => new SelectListItem
+                {
+                    Value = s.Id.ToString(),
+                    Text = s.Name,
+                    Selected = assignedSubjects.Contains(s.Id)
+                }).ToList(),
+                SelectedSubjectIds = assignedSubjects
+            };
+
+            return View(viewModel);
+        }
+
+
+        // POST: Students/EnrollStudents/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Policy = "Admin")]
+        public async Task<IActionResult> EnrollStudents(int id, EnrollStudentsViewModel model)
+        {
+            var student = await _context.Student
+                .Include(s => s.Subjects)
+                .FirstOrDefaultAsync(m => m.Id == id);
+            if (student == null)
+            {
+                return NotFound();
+            }
+
+            var selectedSubjects = await _context.Subject
+                .Where(s => model.SelectedSubjectIds.Contains(s.Id))
+                .ToListAsync();
+
+            student.Subjects.Clear();
+            student.Subjects.AddRange(selectedSubjects);
+
+            // Asigură-te că fiecare materie are asociat un profesor
+            foreach (var subject in selectedSubjects)
+            {
+                var teacher = subject.Teachers.FirstOrDefault();
+                if (teacher != null && !student.Teachers.Contains(teacher))
+                {
+                    student.Teachers.Add(teacher);
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
+        }
+
         // GET: Students/Delete/5
-        [Authorize(Policy = "RequireAdminRole")]
+        [Authorize(Policy = "Admin")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -233,7 +305,7 @@ namespace EduTrack.Controllers
         // POST: Students/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        [Authorize(Policy = "RequireAdminRole")]
+        [Authorize(Policy = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var student = await _context.Student.FindAsync(id);

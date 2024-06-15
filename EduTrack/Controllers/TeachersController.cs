@@ -10,9 +10,11 @@ using EduTrack.Models;
 using Microsoft.AspNetCore.Identity;
 using static System.Formats.Asn1.AsnWriter;
 using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity.Pages.Manage;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EduTrack.Controllers
 {
+    [Authorize(Policy = "Admin")]
     public class TeachersController : Controller
     {
         private readonly UserManager<IdentityUser> _userManager;
