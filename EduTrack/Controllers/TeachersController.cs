@@ -14,7 +14,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace EduTrack.Controllers
 {
-    [Authorize(Policy = "Admin")]
+    [Authorize(Roles = "Admin")]
     public class TeachersController : Controller
     {
         private readonly UserManager<IdentityUser> _userManager;

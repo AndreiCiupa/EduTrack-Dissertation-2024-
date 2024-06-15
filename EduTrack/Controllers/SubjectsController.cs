@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace EduTrack.Controllers
 {
-    [Authorize(Policy = "Admin")]
+    [Authorize(Roles = "Admin")]
     public class SubjectsController : Controller
     {
         private readonly ApplicationDbContext _context;

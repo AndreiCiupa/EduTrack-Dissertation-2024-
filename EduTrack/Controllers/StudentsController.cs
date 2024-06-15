@@ -82,7 +82,7 @@ namespace EduTrack.Controllers
         }
 
         // GET: Students/Create
-        [Authorize(Policy = "Admin")]
+        [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
             return View();
@@ -91,7 +91,7 @@ namespace EduTrack.Controllers
         // POST: Students/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Policy = "Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([Bind("Id,FirstName,LastName,Age,Address,Email,Password")] Student student)
         {
             if (ModelState.IsValid)
@@ -117,7 +117,7 @@ namespace EduTrack.Controllers
         }
 
         // GET: Students/Edit/5
-        [Authorize(Policy = "Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -136,7 +136,7 @@ namespace EduTrack.Controllers
         // POST: Students/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Policy = "Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int id, [Bind("Id,FirstName,LastName,Age,Address,Email,Password")] Student student)
         {
             if (id != student.Id)
@@ -213,7 +213,7 @@ namespace EduTrack.Controllers
         }
 
         // GET: Students/EnrollStudents/5
-        [Authorize(Policy = "Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> EnrollStudents(int? id)
         {
             if (id == null)
@@ -252,7 +252,7 @@ namespace EduTrack.Controllers
         // POST: Students/EnrollStudents/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Policy = "Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> EnrollStudents(int id, EnrollStudentsViewModel model)
         {
             var student = await _context.Student
@@ -285,7 +285,7 @@ namespace EduTrack.Controllers
         }
 
         // GET: Students/Delete/5
-        [Authorize(Policy = "Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -305,7 +305,7 @@ namespace EduTrack.Controllers
         // POST: Students/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        [Authorize(Policy = "Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var student = await _context.Student.FindAsync(id);
