@@ -8,9 +8,11 @@ using Microsoft.EntityFrameworkCore;
 using EduTrack.Data;
 using EduTrack.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EduTrack.Controllers
 {
+    [Authorize]
     public class StudentsController : Controller
     {
         private readonly UserManager<IdentityUser> _userManager;
@@ -25,7 +27,27 @@ namespace EduTrack.Controllers
         // GET: Students
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Student.ToListAsync());
+            var user = await _userManager.GetUserAsync(User);
+            if (User.IsInRole("Admin"))
+            {
+                return View(await _context.Student.ToListAsync());
+            }
+            else if (User.IsInRole("Teacher"))
+            {
+                var teacher = await _context.Teacher
+                                            .Include(t => t.Subjects)
+                                            .ThenInclude(s => s.Students)
+                                            .FirstOrDefaultAsync(t => t.Email == user.Email);
+
+                if (teacher == null)
+                {
+                    return Forbid();
+                }
+
+                var students = teacher.Subjects.SelectMany(s => s.Students).Distinct().ToList();
+                return View(students);
+            }
+            return Forbid();
         }
 
         // GET: Students/Details/5
@@ -36,48 +58,51 @@ namespace EduTrack.Controllers
                 return NotFound();
             }
 
-            var student = await _context.Student
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var student = await _context.Student.FirstOrDefaultAsync(m => m.Id == id);
             if (student == null)
             {
                 return NotFound();
             }
 
-            return View(student);
+            var user = await _userManager.GetUserAsync(User);
+            if (User.IsInRole("Admin"))
+            {
+                return View(student);
+            }
+            else if (User.IsInRole("Teacher"))
+            {
+                var teacher = await _context.Teacher.FirstOrDefaultAsync(t => t.Email == user.Email);
+                if (teacher == null || !student.Teachers.Any(t => t.Id == teacher.Id))
+                {
+                    return Forbid();
+                }
+                return View(student);
+            }
+            return Forbid();
         }
 
         // GET: Students/Create
+        [Authorize(Policy = "RequireAdminRole")]
         public IActionResult Create()
         {
             return View();
         }
 
         // POST: Students/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> Create([Bind("Id,FirstName,LastName,Age,Address,Email,Password")] Student student)
         {
             if (ModelState.IsValid)
             {
-                // Creează un nou utilizator
-                var user = new IdentityUser
-                {
-                    UserName = student.Email,
-                    Email = student.Email
-                };
-
+                var user = new IdentityUser { UserName = student.Email, Email = student.Email };
                 var result = await _userManager.CreateAsync(user, student.Password);
                 if (result.Succeeded)
                 {
-                    // Adaugă studentul în context
                     _context.Add(student);
                     await _context.SaveChangesAsync();
-
-                    // Adaugă utilizatorul la rolul Student
                     await _userManager.AddToRoleAsync(user, "Student");
-
                     return RedirectToAction(nameof(Index));
                 }
                 else
@@ -92,6 +117,7 @@ namespace EduTrack.Controllers
         }
 
         // GET: Students/Edit/5
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -108,10 +134,9 @@ namespace EduTrack.Controllers
         }
 
         // POST: Students/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> Edit(int id, [Bind("Id,FirstName,LastName,Age,Address,Email,Password")] Student student)
         {
             if (id != student.Id)
@@ -129,7 +154,6 @@ namespace EduTrack.Controllers
                         return NotFound();
                     }
 
-                    // Găsește utilizatorul asociat folosind Email-ul
                     var user = await _userManager.FindByEmailAsync(existingStudent.Email);
                     if (user == null)
                     {
@@ -188,77 +212,8 @@ namespace EduTrack.Controllers
             return View(student);
         }
 
-        // GET: Students/EnrollStudents/5
-        public async Task<IActionResult> EnrollStudents(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var student = await _context.Student
-                .Include(s => s.Subjects)
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (student == null)
-            {
-                return NotFound();
-            }
-
-            var allSubjects = await _context.Subject.ToListAsync();
-            var assignedSubjects = student.Subjects.Select(s => s.Id).ToList();
-
-            var viewModel = new EnrollStudentsViewModel
-            {
-                StudentId = student.Id,
-                StudentName = $"{student.FirstName} {student.LastName}",
-                Subjects = allSubjects.Select(s => new SelectListItem
-                {
-                    Value = s.Id.ToString(),
-                    Text = s.Name,
-                    Selected = assignedSubjects.Contains(s.Id)
-                }).ToList(),
-                SelectedSubjectIds = assignedSubjects
-            };
-
-            return View(viewModel);
-        }
-
-
-        // POST: Students/EnrollStudents/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EnrollStudents(int id, EnrollStudentsViewModel model)
-        {
-            var student = await _context.Student
-                .Include(s => s.Subjects)
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (student == null)
-            {
-                return NotFound();
-            }
-
-            var selectedSubjects = await _context.Subject
-                .Where(s => model.SelectedSubjectIds.Contains(s.Id))
-                .ToListAsync();
-
-            student.Subjects.Clear();
-            student.Subjects.AddRange(selectedSubjects);
-
-            // Asigură-te că fiecare materie are asociat un profesor
-            foreach (var subject in selectedSubjects)
-            {
-                var teacher = subject.Teachers.FirstOrDefault();
-                if (teacher != null && !student.Teachers.Contains(teacher))
-                {
-                    student.Teachers.Add(teacher);
-                }
-            }
-
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
-
         // GET: Students/Delete/5
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -266,8 +221,7 @@ namespace EduTrack.Controllers
                 return NotFound();
             }
 
-            var student = await _context.Student
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var student = await _context.Student.FirstOrDefaultAsync(m => m.Id == id);
             if (student == null)
             {
                 return NotFound();
@@ -279,12 +233,12 @@ namespace EduTrack.Controllers
         // POST: Students/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var student = await _context.Student.FindAsync(id);
             if (student != null)
             {
-                // Găsește utilizatorul asociat folosind Email-ul
                 var user = await _userManager.FindByEmailAsync(student.Email);
                 if (user != null)
                 {
@@ -295,11 +249,10 @@ namespace EduTrack.Controllers
                         {
                             ModelState.AddModelError(string.Empty, error.Description);
                         }
-                        return View(student); // Sau redirecționează către o altă acțiune, dacă este necesar
+                        return View(student);
                     }
                 }
 
-                // Șterge studentul
                 _context.Student.Remove(student);
                 await _context.SaveChangesAsync();
             }
@@ -307,10 +260,10 @@ namespace EduTrack.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-
         private bool StudentExists(int id)
         {
             return _context.Student.Any(e => e.Id == id);
         }
     }
 }
+
