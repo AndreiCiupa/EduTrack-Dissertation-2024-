@@ -17,12 +17,12 @@
                     <a class="btn btn-primary mb-2" href="@Url.Action("Index", "Subjects")">Manage Subjects</a>
                     <a class="btn btn-primary mb-2" href="@Url.Action("Index", "Teachers")">Manage Teachers</a>
                     <a class="btn btn-primary mb-2" href="@Url.Action("Index", "Students")">Manage Students</a>
-                    <a class="btn btn-primary mb-2" href="@Url.Action("Index", "Marks")">View My Marks</a>
+                    <a class="btn btn-primary mb-2" href="@Url.Action("Index", "Marks")">View Marks</a>
                 }
                 else if (User.IsInRole("Teacher"))
                 {
-                    <a class="btn btn-primary mb-2" href="@Url.Action("Index", "Students")">Manage Students</a>
-                    <a class="btn btn-primary mb-2" href="@Url.Action("Index", "Marks")">View My Marks</a>
+                    <a class="btn btn-primary mb-2" href="@Url.Action("Index", "Students")">View Students</a>
+                    <a class="btn btn-primary mb-2" href="@Url.Action("Index", "Marks")">Manage Marks</a>
                 }
                 else if (User.IsInRole("Student"))
                 {
