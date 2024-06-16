@@ -219,14 +219,17 @@ namespace EduTrack.Controllers
 
             var student = await _context.Student
                 .Include(s => s.Subjects)
+                .ThenInclude(sub => sub.Teachers)
+                .Include(s => s.Teachers)
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (student == null)
             {
                 return NotFound();
             }
 
-            var allSubjects = await _context.Subject.ToListAsync();
+            var allSubjects = await _context.Subject.Include(s => s.Teachers).ToListAsync();
             var assignedSubjects = student.Subjects.Select(s => s.Id).ToList();
+            var assignedTeachers = student.Teachers.Select(t => t.Id).ToList();
 
             var viewModel = new EnrollStudentsViewModel
             {
@@ -238,7 +241,9 @@ namespace EduTrack.Controllers
                     Text = s.Name,
                     Selected = assignedSubjects.Contains(s.Id)
                 }).ToList(),
-                SelectedSubjectIds = assignedSubjects
+                SelectedSubjectIds = assignedSubjects,
+                Teachers = new List<SelectListItem>(),
+                SelectedTeacherIds = assignedTeachers
             };
 
             return View(viewModel);
@@ -253,6 +258,7 @@ namespace EduTrack.Controllers
         {
             var student = await _context.Student
                 .Include(s => s.Subjects)
+                .Include(s => s.Teachers) // Include teachers
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (student == null)
             {
@@ -260,25 +266,47 @@ namespace EduTrack.Controllers
             }
 
             var selectedSubjects = await _context.Subject
+                .Include(s => s.Teachers)
                 .Where(s => model.SelectedSubjectIds.Contains(s.Id))
                 .ToListAsync();
 
             student.Subjects.Clear();
             student.Subjects.AddRange(selectedSubjects);
 
-            // Asigură-te că fiecare materie are asociat un profesor
+            var selectedTeacherIds = new List<int>();
             foreach (var subject in selectedSubjects)
             {
-                var teacher = subject.Teachers.FirstOrDefault();
-                if (teacher != null && !student.Teachers.Contains(teacher))
-                {
-                    student.Teachers.Add(teacher);
-                }
+                selectedTeacherIds.AddRange(subject.Teachers.Select(t => t.Id));
             }
+
+            var selectedTeachers = await _context.Teacher
+                .Where(t => selectedTeacherIds.Contains(t.Id) && model.SelectedTeacherIds.Contains(t.Id))
+                .ToListAsync();
+
+            student.Teachers.Clear();
+            student.Teachers.AddRange(selectedTeachers);
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
+
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetTeachersForSubjects(List<int> subjectIds)
+        {
+            var teachers = await _context.Subject
+                .Where(s => subjectIds.Contains(s.Id))
+                .SelectMany(s => s.Teachers)
+                .Distinct()
+                .Select(t => new SelectListItem
+                {
+                    Value = t.Id.ToString(),
+                    Text = $"{t.FirstName} {t.LastName}"
+                })
+                .ToListAsync();
+
+            return Json(teachers);
+        }
+
 
         // GET: Students/Delete/5
         [Authorize(Roles = "Admin")]

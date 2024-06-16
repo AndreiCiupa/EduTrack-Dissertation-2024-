@@ -12,9 +12,53 @@
     <input type="hidden" asp-for="StudentId" />
     <div class="form-group">
         <label asp-for="Subjects" class="control-label">Subjects</label>
-        <select asp-for="SelectedSubjectIds" class="form-control" asp-items="Model.Subjects" multiple="multiple"></select>
+        <select asp-for="SelectedSubjectIds" class="form-control" asp-items="Model.Subjects" multiple="multiple" id="subjectSelect"></select>
+    </div>
+    <div class="form-group">
+        <label asp-for="Teachers" class="control-label">Teachers</label>
+        <select asp-for="SelectedTeacherIds" class="form-control" asp-items="Model.Teachers" multiple="multiple" id="teacherSelect"></select>
     </div>
     <div class="form-group">
         <input type="submit" value="Enroll" class="btn btn-primary" />
     </div>
 </form>
+
+@section Scripts {
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            function updateTeachers() {
+                var selectedSubjects = $('#subjectSelect').val();
+                $.ajax({
+                    url: '@Url.Action("GetTeachersForSubjects", "Students")',
+                    type: 'GET',
+                    data: { subjectIds: selectedSubjects },
+                    traditional: true,
+                    success: function (data) {
+                        var teacherSelect = $('#teacherSelect');
+                        teacherSelect.empty();
+                        $.each(data, function (i, teacher) {
+                            teacherSelect.append($('<option>', {
+                                value: teacher.value,
+                                text: teacher.text
+                            }));
+                        });
+
+                        // Select the already assigned teachers
+                        var selectedTeachers = @Html.Raw(Json.Serialize(Model.SelectedTeacherIds));
+                        teacherSelect.val(selectedTeachers);
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("There was an error: " + error);
+                    }
+                });
+            }
+
+            // Update teachers on page load
+            updateTeachers();
+
+            // Update teachers when subjects change
+            $('#subjectSelect').change(updateTeachers);
+        });
+    </script>
+}

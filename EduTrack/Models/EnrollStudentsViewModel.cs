@@ -8,5 +8,9 @@ namespace EduTrack.Models
         public string StudentName { get; set; }
         public List<SelectListItem> Subjects { get; set; } = new List<SelectListItem>();
         public List<int> SelectedSubjectIds { get; set; } = new List<int>();
+
+        // Adăugăm pentru profesori
+        public List<SelectListItem> Teachers { get; set; } = new List<SelectListItem>();
+        public List<int> SelectedTeacherIds { get; set; } = new List<int>();
     }
 }
