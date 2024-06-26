@@ -30,15 +30,26 @@ namespace EduTrack.Controllers
             }
             else if (User.IsInRole("Teacher"))
             {
-                var students = await _context.Student
-                                    .Where(s => s.Teachers.Any(p => p.Email == user.Email))
-                                    .ToListAsync();
+                var teacher = await _context.Teacher
+                    .Include(t => t.Students)
+                    .FirstOrDefaultAsync(t => t.Email == user.Email);
+                //.Include(t => t.Subjects)
                 //.ThenInclude(s => s.Students)
+                //.FirstOrDefaultAsync(t => t.Email == user.Email);
 
+                if (teacher == null)
+                {
+                    return Forbid();
+                }
 
-                
-
-                
+                // Get students associated with the logged in teacher
+                //var students = await _context.Student
+                //                            .Where(s => s.Teachers.Any(t => t.Email == user.Email))
+                //                            .ToListAsync();
+                //var students = await _context.Student
+                //                            .Where(s => s.Teachers.Any(t => t.Email == user.Email))
+                //                            .ToListAsync();
+                var students = teacher.Students.ToList();
                 return View(students);
             }
             return Forbid();
@@ -218,8 +229,8 @@ namespace EduTrack.Controllers
             var student = await _context.Student
                 .Include(s => s.Subjects)
                 .ThenInclude(sub => sub.Teachers)
-                .Include(s => s.Teachers)
                 .FirstOrDefaultAsync(m => m.Id == id);
+
             if (student == null)
             {
                 return NotFound();
@@ -227,7 +238,7 @@ namespace EduTrack.Controllers
 
             var allSubjects = await _context.Subject.Include(s => s.Teachers).ToListAsync();
             var assignedSubjects = student.Subjects.Select(s => s.Id).ToList();
-            var assignedTeachers = student.Teachers.Select(t => t.Id).ToList();
+            var assignedTeachers = student.Subjects.ToDictionary(s => s.Id, s => s.Teachers.FirstOrDefault()?.Id); // Dicționar pentru a memora profesorii alocați pentru fiecare materie
 
             var viewModel = new EnrollStudentsViewModel
             {
@@ -241,14 +252,65 @@ namespace EduTrack.Controllers
                 }).ToList(),
                 SelectedSubjectIds = assignedSubjects,
                 Teachers = new List<SelectListItem>(),
-                SelectedTeacherIds = assignedTeachers
+                /*SelectedTeacherId = 0*/ // Inițializăm cu 0 pentru a nu selecta niciun profesor
             };
 
             return View(viewModel);
         }
 
 
+
         // POST: Students/EnrollStudents/5
+        //[HttpPost]
+        //[ValidateAntiForgeryToken]
+        //[Authorize(Roles = "Admin")]
+        //public async Task<IActionResult> EnrollStudents(int id, EnrollStudentsViewModel model)
+        //{
+        //    var student = await _context.Student
+        //        .Include(s => s.Subjects)
+        //        .Include(s => s.Teachers)
+        //        .FirstOrDefaultAsync(m => m.Id == id);
+
+        //    if (student == null)
+        //    {
+        //        return NotFound();
+        //    }
+
+        //    var selectedSubjects = await _context.Subject
+        //        .Include(s => s.Teachers)
+        //        .Where(s => model.SelectedSubjectIds.Contains(s.Id))
+        //        .ToListAsync();
+
+        //    //student.Subjects.Clear();
+
+        //    //student.Subjects.AddRange(selectedSubjects);
+
+        //    // Selectăm profesorul pentru toate materiile selectate
+        //    //var selectedTeacherId = model.SelectedTeacherId;
+        //    //foreach (var subject in selectedSubjects)
+        //    //{
+        //    //    var teacher = subject.Teachers.FirstOrDefault(t => t.Id == selectedTeacherId);
+        //    //    if (teacher != null)
+        //    //    {
+        //    //        subject.Teachers.Clear();
+        //    //        subject.Teachers.Add(teacher);
+        //    //    }
+        //    //}
+        //    var selectedTeacherId = model.SelectedTeacherId;
+        //    foreach (var subject in selectedSubjects)
+        //    {
+        //        var teacher = subject.Teachers.FirstOrDefault(t => t.Id == selectedTeacherId); // Get the first selected teacher (assuming single selection)
+        //        //var selectedTeacher = await _context.Teacher.FindAsync(selectedTeacherId);
+        //        if (teacher != null)
+        //        {
+        //            subject.Teachers.Add(teacher); // Associate teacher with subject
+        //            student.Teachers.Add(teacher); // Associate teacher with student
+        //        }
+        //    }
+
+        //    await _context.SaveChangesAsync();
+        //    return RedirectToAction(nameof(Index));
+        //}
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
@@ -256,8 +318,10 @@ namespace EduTrack.Controllers
         {
             var student = await _context.Student
                 .Include(s => s.Subjects)
-                .Include(s => s.Teachers) // Include teachers
+                .ThenInclude(sub => sub.Teachers)
+                .Include(s => s.Teachers)
                 .FirstOrDefaultAsync(m => m.Id == id);
+
             if (student == null)
             {
                 return NotFound();
@@ -268,25 +332,38 @@ namespace EduTrack.Controllers
                 .Where(s => model.SelectedSubjectIds.Contains(s.Id))
                 .ToListAsync();
 
-            student.Subjects.Clear();
-            student.Subjects.AddRange(selectedSubjects);
-
-            var selectedTeacherIds = new List<int>();
+            // Clear existing subjects and associated teachers for the student
+            //student.Subjects.Clear();
             foreach (var subject in selectedSubjects)
             {
-                selectedTeacherIds.AddRange(subject.Teachers.Select(t => t.Id));
+                student.Subjects.Add(subject); // Associate selected subjects with student
             }
 
-            var selectedTeachers = await _context.Teacher
-                .Where(t => selectedTeacherIds.Contains(t.Id) && model.SelectedTeacherIds.Contains(t.Id))
-                .ToListAsync();
+            // Associate selected teacher with each subject
+            var selectedTeacherId = model.SelectedTeacherId;
+            //foreach (var subject in selectedSubjects)
+            //{
+            //    var teacher = subject.Teachers.FirstOrDefault(t => t.Id == selectedTeacherId);
+            //    if (teacher != null)
+            //    {
+            //        /*subject.Teachers.Clear();*/ // Clear existing teachers for the subject (if needed)
+            //        subject.Teachers.Add(teacher); // Add selected teacher to the subject
+            //    }
+            //}
 
-            student.Teachers.Clear();
-            student.Teachers.AddRange(selectedTeachers);
+            // Associate selected teacher with the student directly
+            var selectedTeacher = await _context.Teacher.FindAsync(selectedTeacherId);
+            if (selectedTeacher != null)
+            {
+                /*student.Teachers.Clear();*/ // Clear existing teachers for the student (if needed)
+                student.Teachers.Add(selectedTeacher); // Add selected teacher to the student
+                selectedTeacher.Students.Add(student);
+            }
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
+
 
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetTeachersForSubjects(List<int> subjectIds)

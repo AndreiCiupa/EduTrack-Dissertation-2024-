@@ -248,7 +248,7 @@ namespace EduTrack.Controllers
                 .Where(s => model.SelectedSubjectIds.Contains(s.Id))
                 .ToListAsync();
 
-            teacher.Subjects.Clear();
+            //teacher.Subjects.Clear();
             teacher.Subjects.AddRange(selectedSubjects);
 
             await _context.SaveChangesAsync();

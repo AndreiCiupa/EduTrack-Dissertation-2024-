@@ -15,8 +15,8 @@
         <select asp-for="SelectedSubjectIds" class="form-control" asp-items="Model.Subjects" multiple="multiple" id="subjectSelect"></select>
     </div>
     <div class="form-group">
-        <label asp-for="Teachers" class="control-label">Teachers</label>
-        <select asp-for="SelectedTeacherIds" class="form-control" asp-items="Model.Teachers" multiple="multiple" id="teacherSelect"></select>
+        <label asp-for="SelectedTeacherId" class="control-label">Teacher</label>
+        <select asp-for="SelectedTeacherId" class="form-control"></select>
     </div>
     <div class="form-group">
         <input type="submit" value="Enroll" class="btn btn-primary" />
@@ -35,7 +35,7 @@
                     data: { subjectIds: selectedSubjects },
                     traditional: true,
                     success: function (data) {
-                        var teacherSelect = $('#teacherSelect');
+                        var teacherSelect = $('#SelectedTeacherId');
                         teacherSelect.empty();
                         $.each(data, function (i, teacher) {
                             teacherSelect.append($('<option>', {
@@ -44,9 +44,9 @@
                             }));
                         });
 
-                        // Select the already assigned teachers
-                        var selectedTeachers = @Html.Raw(Json.Serialize(Model.SelectedTeacherIds));
-                        teacherSelect.val(selectedTeachers);
+                        // Select the already assigned teacher
+                        var selectedTeacherId = @Html.Raw(Json.Serialize(Model.SelectedTeacherId));
+                        teacherSelect.val(selectedTeacherId);
                     },
                     error: function (xhr, status, error) {
                         console.error("There was an error: " + error);

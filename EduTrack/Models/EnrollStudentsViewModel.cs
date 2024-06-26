@@ -11,6 +11,6 @@ namespace EduTrack.Models
 
         // Adăugăm pentru profesori
         public List<SelectListItem> Teachers { get; set; } = new List<SelectListItem>();
-        public List<int> SelectedTeacherIds { get; set; } = new List<int>();
+        public int SelectedTeacherId { get; set; }
     }
 }

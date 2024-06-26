@@ -20,7 +20,7 @@ namespace EduTrack.Models
 
 
         public List<Subject> Subjects { get; set; } = new List<Subject>();
-
+        public List<Student> Students { get; set; } = new List<Student>();
         public List<Mark> Marks { get; set; } = new List<Mark>();
     }
 }
