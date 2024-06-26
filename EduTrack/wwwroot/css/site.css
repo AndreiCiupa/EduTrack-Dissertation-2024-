@@ -1,4 +1,4 @@
-html {
+﻿html {
   font-size: 14px;
 }
 
@@ -18,10 +18,53 @@ html {
 }
 
 body {
-  margin-bottom: 60px;
+    display: grid;
+    grid-template-rows: auto 1fr auto; /* Header, Content, Footer */
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+.main-content {
+    overflow-y: auto; /* Permitere scroll numai pentru conținut */
+    padding: 20px;
+}
+
+.table-container {
+    overflow-x: auto; /* Permite scroll orizontal pentru tabel */
+    margin-bottom: 60px; /* Adăugare spațiu pentru a nu acoperi footer-ul */
+}
+
+footer {
+    background-color: #f8f9fa;
+    padding: 10px 0;
+    text-align: center;
+    border-top: 1px solid #e7e7e7;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
 }
 
 
+/*body {
+    display: grid;
+    grid-template-rows: auto 1fr auto;*/ /* Header, Content, Footer */
+    /*min-height: 100vh;
+    margin: 60px;*/
+    /*margin-bottom: 60px;*/
+/*}
+
+.main-content {
+    overflow-y: auto;*/ /* Permite scroll doar în conținutul principal */
+    /*padding: 20px;
+}
+
+footer {
+    background-color: #f8f9fa;
+    padding: 10px 0;
+    text-align: center;
+    border-top: 1px solid #e7e7e7;
+}*/
 
 
 @keyframes rainbowBackground {

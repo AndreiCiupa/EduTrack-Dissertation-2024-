@@ -30,17 +30,15 @@ namespace EduTrack.Controllers
             }
             else if (User.IsInRole("Teacher"))
             {
-                var teacher = await _context.Teacher
-                                            .Include(t => t.Subjects)
-                                            .ThenInclude(s => s.Students)
-                                            .FirstOrDefaultAsync(t => t.Email == user.Email);
+                var students = await _context.Student
+                                    .Where(s => s.Teachers.Any(p => p.Email == user.Email))
+                                    .ToListAsync();
+                //.ThenInclude(s => s.Students)
 
-                if (teacher == null)
-                {
-                    return Forbid();
-                }
 
-                var students = teacher.Subjects.SelectMany(s => s.Students).Distinct().ToList();
+                
+
+                
                 return View(students);
             }
             return Forbid();
