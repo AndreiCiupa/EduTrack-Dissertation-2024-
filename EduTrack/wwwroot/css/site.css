@@ -21,3 +21,24 @@ body {
   margin-bottom: 60px;
 }
 
+
+
+
+@keyframes rainbowBackground {
+    0% {
+        background-position: 0% 0%;
+    }
+
+    100% {
+        background-position: 100% 100%;
+    }
+}
+
+body {
+    animation: rainbowBackground 30s linear infinite;
+    background: linear-gradient(135deg, #ffcccc, #ffccff, #ccccff, #ccffff, #ccffcc, #ffffcc, #ffcc99);
+    background-size: 200% 200%;
+    background-repeat: no-repeat;
+    margin: 0;
+    height: 100vh;
+}
