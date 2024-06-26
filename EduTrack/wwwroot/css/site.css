@@ -85,3 +85,66 @@ body {
     margin: 0;
     height: 100vh;
 }
+
+.custom-btn {
+    border-radius: 25px;
+    font-size: 1.2em;
+    color: #000; /* Text negru */
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+    .custom-btn:hover {
+        color: #fff; /* Text alb la hover */
+    }
+
+/* Primary Button - Light Blue */
+.btn-primary {
+    background-color: #b3e0ff; /* Light Blue */
+    border-color: #b3e0ff;
+    color: #000; /* Text negru */
+}
+
+    .btn-primary:hover {
+        background-color: #80c1ff; /* Darker Blue */
+        border-color: #80c1ff;
+        color: #fff; /* Text alb la hover */
+    }
+
+/* Success Button - Light Green */
+.btn-success {
+    background-color: #d1f7c4; /* Light Green */
+    border-color: #d1f7c4;
+    color: #000; /* Text negru */
+}
+
+    .btn-success:hover {
+        background-color: #a7e589; /* Darker Green */
+        border-color: #a7e589;
+        color: #fff; /* Text alb la hover */
+    }
+
+/* Info Button - Light Cyan */
+.btn-info {
+    background-color: #b3f0ff; /* Light Cyan */
+    border-color: #b3f0ff;
+    color: #000; /* Text negru */
+}
+
+    .btn-info:hover {
+        background-color: #80e1ff; /* Darker Cyan */
+        border-color: #80e1ff;
+        color: #fff; /* Text alb la hover */
+    }
+
+/* Warning Button - Light Yellow */
+.btn-warning {
+    background-color: #fff4b3; /* Light Yellow */
+    border-color: #fff4b3;
+    color: #000; /* Text negru */
+}
+
+    .btn-warning:hover {
+        background-color: #ffe680; /* Darker Yellow */
+        border-color: #ffe680;
+        color: #fff; /* Text alb la hover */
+    }

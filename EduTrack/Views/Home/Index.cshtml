@@ -11,30 +11,28 @@
     <div class="col-md-6">
         <div class="card">
             <div class="card-body text-center">
-                @* Verificăm rolul utilizatorului curent și afișăm butoanele corespunzătoare *@
                 @if (User.Identity.IsAuthenticated)
                 {
-                    @* Verificăm rolul utilizatorului curent și afișăm butoanele corespunzătoare *@
                     @if (User.IsInRole("Admin"))
                     {
                         <div class="d-grid gap-2">
-                            <a class="btn btn-primary" href="@Url.Action("Index", "Subjects")">Manage Subjects</a>
-                            <a class="btn btn-primary" href="@Url.Action("Index", "Teachers")">Manage Teachers</a>
-                            <a class="btn btn-primary" href="@Url.Action("Index", "Students")">Manage Students</a>
-                            <a class="btn btn-primary" href="@Url.Action("Index", "Marks")">View Marks</a>
+                            <a class="btn btn-primary mb-2 custom-btn" href="@Url.Action("Index", "Subjects")">Manage Subjects</a>
+                            <a class="btn btn-success mb-2 custom-btn" href="@Url.Action("Index", "Teachers")">Manage Teachers</a>
+                            <a class="btn btn-info mb-2 custom-btn" href="@Url.Action("Index", "Students")">Manage Students</a>
+                            <a class="btn btn-warning mb-2 custom-btn" href="@Url.Action("Index", "Marks")">View Marks</a>
                         </div>
                     }
                     else if (User.IsInRole("Teacher"))
                     {
                         <div class="d-grid gap-2">
-                            <a class="btn btn-primary" href="@Url.Action("Index", "Students")">View Students</a>
-                            <a class="btn btn-primary" href="@Url.Action("Index", "Marks")">Manage Marks</a>
+                            <a class="btn btn-info mb-2 custom-btn" href="@Url.Action("Index", "Students")">View Students</a>
+                            <a class="btn btn-warning mb-2 custom-btn" href="@Url.Action("Index", "Marks")">Manage Marks</a>
                         </div>
                     }
                     else if (User.IsInRole("Student"))
                     {
                         <div class="d-grid gap-2">
-                            <a class="btn btn-primary" href="@Url.Action("Index", "Marks")">View My Marks</a>
+                            <a class="btn btn-primary mb-2 custom-btn" href="@Url.Action("Index", "Marks")">View My Marks</a>
                         </div>
                     }
                 }
@@ -42,12 +40,11 @@
                 {
                     <div>
                         <p>You are not logged in. Please log in to access your dashboard.</p>
-                        <div class="d-grid gap-2">
                         <a class="btn btn-primary" href="@Url.Page("/Account/Login", new { area = "Identity" })">Log In</a>
-                        </div>
                     </div>
                 }
             </div>
         </div>
     </div>
 </div>
+
