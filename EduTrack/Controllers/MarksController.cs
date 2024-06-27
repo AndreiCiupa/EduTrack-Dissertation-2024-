@@ -111,10 +111,28 @@ namespace EduTrack.Controllers
 
         // GET: Marks/Create
         [Authorize(Roles = "Teacher")]
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
-            ViewData["StudentId"] = new SelectList(_context.Student, "Id", "Email");  // Display email for clarity
-            ViewData["SubjectId"] = new SelectList(_context.Subject, "Id", "Name");  // Display name for clarity
+            var user = await _userManager.GetUserAsync(User);
+            var teacher = await _context.Teacher
+                .Include(t => t.Subjects) // Include subjects for the teacher
+                .ThenInclude(s => s.Students) // Include students for each subject
+                .FirstOrDefaultAsync(t => t.Email == user.Email);
+
+            if (teacher == null)
+            {
+                return Forbid();  // sau gestionează situația în care profesorul nu este găsit
+            }
+
+            // Obținem o listă de studenți asociată profesorului
+            var students = teacher.Subjects.SelectMany(s => s.Students).Distinct().ToList();
+
+            // Creăm SelectList pentru dropdown cu studenți
+            ViewData["StudentId"] = new SelectList(students, "Id", "Email");  // Afișăm email-ul pentru claritate
+
+            // Creăm SelectList pentru dropdown cu materii (subiecte)
+            ViewData["SubjectId"] = new SelectList(teacher.Subjects, "Id", "Name");  // Afișăm numele pentru claritate
+
             return View();
         }
 
@@ -125,11 +143,23 @@ namespace EduTrack.Controllers
         public async Task<IActionResult> Create([Bind("Id,Value,StudentId,SubjectId")] Mark mark)
         {
             var user = await _userManager.GetUserAsync(User);
-            var teacher = await _context.Teacher.FirstOrDefaultAsync(t => t.Email == user.Email);
+            var teacher = await _context.Teacher
+                .Include(t => t.Subjects) // Include subjects for the teacher
+                .ThenInclude(s => s.Students) // Include students for each subject
+                .FirstOrDefaultAsync(t => t.Email == user.Email);
 
             if (teacher == null)
             {
-                return Forbid();  // or handle accordingly if the teacher is not found
+                return Forbid();  // sau gestionează situația în care profesorul nu este găsit
+            }
+
+            // Verificăm dacă materia și studentul sunt asociate profesorului
+            var isValidSubjectAndStudent = teacher.Subjects.Any(s => s.Id == mark.SubjectId) &&
+                                           teacher.Subjects.SelectMany(s => s.Students).Any(st => st.Id == mark.StudentId);
+
+            if (!isValidSubjectAndStudent)
+            {
+                return BadRequest("Invalid subject or student.");  // sau gestionează eroarea corespunzător
             }
 
             if (ModelState.IsValid)
@@ -140,10 +170,14 @@ namespace EduTrack.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["StudentId"] = new SelectList(_context.Student, "Id", "Email", mark.StudentId);
-            ViewData["SubjectId"] = new SelectList(_context.Subject, "Id", "Name", mark.SubjectId);
+
+            // Încărcăm din nou listele pentru dropdown-uri în caz de eroare
+            var students = teacher.Subjects.SelectMany(s => s.Students).Distinct().ToList();
+            ViewData["StudentId"] = new SelectList(students, "Id", "Email", mark.StudentId);
+            ViewData["SubjectId"] = new SelectList(teacher.Subjects, "Id", "Name", mark.SubjectId);
             return View(mark);
         }
+
 
         // GET: Marks/Edit/5
         [Authorize(Roles = "Teacher")]
